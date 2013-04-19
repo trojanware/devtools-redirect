@@ -61,6 +61,7 @@
       //DOM els,
       this.formRules = $('#form-rules');
       this.formActions = this.formRules.find('.form-actions');
+      this.wrpSaving = this.element.find('#wrp-saving');
       
       var optionsDef = null;
       if(!this.options.rules) {
@@ -122,14 +123,18 @@
     "input.resourceURL, input.resourceRedirectURL keyup": function(el, event) {
       var _this = this;
       var url = el.val();
+
+      if(url == "") return;
+      //Also remove the current status icon!
+
       var model = el.parents('li').data('resource');
       var id = model._cid+"-"+el.data('resourcetype');
       if(this.resourceKeyupTimeouts[id]) clearTimeout(this.resourceKeyupTimeouts[id]);
 
       //Build the url w/ the domain if needed,
-      if(url.indexOf('http://') == -1 && url.indexOf('https://') == -1) {
+      if(url.indexOf('http://') == -1 && url.indexOf('https://') == -1 && url.indexOf('file://') == -1) {
         var parentFieldset = el.parents('fieldset');
-        if(parentFieldset.length) url = parentFieldset.find('input.domainURL').val() + url;
+        if(parentFieldset.length) url = _this.formatDomainURL(parentFieldset.find('input.domainURL').val()) + _this.formatResourceURL(url);
       }
 
       this.resourceKeyupTimeouts[id] = setTimeout(function() {
@@ -137,30 +142,41 @@
       }, 750);
     },
 
+    "input.domainURL, input.resourceURL, input.resourceRedirectURL blur": function(el, event) {
+      // Save the rules every time a text field is blured(),
+      this.saveRules();
+    },
+
+    "input.siteEnabled change": function(el, event) {
+      // Save the rules every time a domain or a redirect enabling change,
+      this.saveRules();
+    },
+
     ".btn-rules-add click": function(el, event) {
       this.addRulesSet();
-      
       event.preventDefault();
     },
     
-    ".btn-save click": function(el, event) {
+    saveRules: function() {
+      var _this = this;
       
+      //Get rules,
       var rules = this.retrieveRules();
       
       if(!chrome.storage) { return; }
 
-      el.attr('disabled', true);
+      //Show loading state,
+      //Keep it for now, but it's saving so fast that this is useless...
+      //this.wrpSaving.css('display', 'block');
 
       chrome.storage.sync.set({'rules': rules}, function() {
-        el.removeAttr('disabled');
+        //_this.wrpSaving.css('display', 'none');
         
         //Once options are set, update options,
         if(typeof window.respond != 'undefined') window.respond({action: 'refreshOptions'});
       });
-      
-      event.preventDefault();
     },
-    
+
     setInputIcon: function(input, status, url, content) {
       var icon = input.parent().find('.icon');
 
@@ -222,12 +238,18 @@
       
       var resourceHTML = can.view('views/rule-resources.ejs', {resources: newResourceList});
       list.append(resourceHTML);
+
+      //Save current state,
+      this.saveRules();
     },
     
     addRulesSet: function() {
       var newRules = DevtoolsRedirect.Resource.models([new DevtoolsRedirect.Rule()]);
       var ruleHTML = can.view('views/rules.ejs', {rules: newRules});
       this.formActions.before(ruleHTML);
+
+      //Save current state,
+      this.saveRules();
     },
     
     addResourceFromTools: function(tab, resource) {
@@ -248,9 +270,13 @@
     
     deleteResourceRow: function(rowEl) {
       rowEl.remove();
+
+      //Save current state,
+      this.saveRules();
     },
     
     retrieveRules: function() {
+      var _this = this;
       var rules = [];
       
       this.element.find('fieldset').each(function() {
@@ -258,8 +284,11 @@
         //Retrieve domain data,
         var domain = {};
         domain.enabled = el.find('input.siteEnabled').is(':checked') ? true : false;
-        domain.domainURL = el.find('input.domainURL').val();
+        domain.domainURL = _this.formatDomainURL(el.find('input.domainURL').val());
         
+        //Auto-disable is domainURL is empty,
+        if(domain.domainURL == "") domain.enabled = false;
+
         //Retrieve rules data,
         domain.resources = [];
         el.find('ul.list-resources li').each(function() {
@@ -267,9 +296,12 @@
           
           var resource = {};
           resource.enabled = el.find('input.resourceEnabled').is(':checked') ? true : false;
-          resource.resourceURL = el.find('input.resourceURL').val();
+          resource.resourceURL = _this.formatResourceURL(el.find('input.resourceURL').val());
           resource.resourceRedirectURL = el.find('input.resourceRedirectURL').val();
           
+          //Auto-disable is domainURL is empty,
+          if(resource.resourceURL == "" || resource.resourceRedirectURL == "") resource.enabled = false;
+
           domain.resources.push(resource);
           
         });
@@ -296,6 +328,14 @@
       var matches = url.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
       var domain  = matches && matches[1] ? matches[1] : null;
       return domain && asRegex ? "*://"+domain : domain;
+    },
+
+    formatDomainURL: function(u) {
+      return u != "" ? u.replace(/\/?$/, '/') : u; //Make sure the domainURL has a trailing slash
+    },
+
+    formatResourceURL: function(u) {
+      return u != "" ? u.replace(/^\//g, '') : u; //Remove the leading slash if it exist
     }
     
   });
@@ -306,10 +346,10 @@
 
 (function(window) {
   can.view.preload('views_rules_ejs', can.EJS(function(_CONTEXT,_VIEW) { with(_VIEW) { with (_CONTEXT) {var ___v1ew = [];___v1ew.push(can.view.txt(0,'',0,this,function(){var ___v1ew = []; $.each( rules, function( i, rule ) { ___v1ew.push("\n  <fieldset>\n    <legend>\n      <input class=\"siteEnabled\" type=\"checkbox\" placeholder=\"Enabled\" ");___v1ew.push(can.view.txt(0,'input',1,this,function(){var ___v1ew = []; if(rule.attr('enabled')) { ___v1ew.push(" checked=\"checked\""); } ;return ___v1ew.join('')}));
-___v1ew.push(" ",can.view.pending(),"/>");___v1ew.push("\n      <div class=\"input-prepend\">\n        <span class=\"add-on\"><i class=\"icon-globe\"></i></span>\n        <input class=\"domainURL span6\" type=\"text\" placeholder=\"domain URL\" value=\"");___v1ew.push(can.view.txt(1,'input','value',this,function(){ return  rule.attr('domainURL') }));___v1ew.push("\" ",can.view.pending(),"/>");___v1ew.push("\n      </div>\n      <a class=\"btn btn-add\"><i class=\"icon-plus-sign\"></i></a>\n    </legend>\n    \n    <ul class=\"list-resources\">\n      ");___v1ew.push(can.view.txt(0,'ul',0,this,function(){var ___v1ew = []; if(rule.resources) { ___v1ew.push("\n        ");___v1ew.push(can.view.txt(0,'ul',0,this,function(){ return  can.view.render('//../views/rule-resources.ejs', {'resources': rule.resources}) }));___v1ew.push("\n      "); } ;return ___v1ew.join('')}));
+___v1ew.push(" ",can.view.pending(),"/>");___v1ew.push("\n      <div class=\"input-prepend\">\n        <span class=\"add-on\"><i class=\"icon-globe\"></i></span>\n        <input class=\"domainURL span6\" type=\"text\" placeholder=\"domain URL (e.g http://mydomain.com/)\" value=\"");___v1ew.push(can.view.txt(1,'input','value',this,function(){ return  rule.attr('domainURL') }));___v1ew.push("\" ",can.view.pending(),"/>");___v1ew.push("\n      </div>\n      <a class=\"btn btn-add\"><i class=\"icon-plus-sign\"></i></a>\n    </legend>\n    \n    <ul class=\"list-resources\">\n      ");___v1ew.push(can.view.txt(0,'ul',0,this,function(){var ___v1ew = []; if(rule.resources) { ___v1ew.push("\n        ");___v1ew.push(can.view.txt(0,'ul',0,this,function(){ return  can.view.render('//../views/rule-resources.ejs', {'resources': rule.resources}) }));___v1ew.push("\n      "); } ;return ___v1ew.join('')}));
 ___v1ew.push("\n    </ul>\n    <div class=\"clear\"></div>\n  </fieldset>\n  \n"); }); ;return ___v1ew.join('')}));
 ; return ___v1ew.join('')}} }));
   can.view.preload('views_rule-resources_ejs',can.EJS(function(_CONTEXT,_VIEW) { with(_VIEW) { with (_CONTEXT) {var ___v1ew = [];___v1ew.push(can.view.txt(0,'',0,this,function(){var ___v1ew = []; list( resources, function( resource ) { ___v1ew.push("\n  <li ");___v1ew.push(can.view.txt(1,'li',1,this,function(){ return function(__){var el=can.$(__); el.data('resource', resource) }}));___v1ew.push(" class=\"");___v1ew.push(can.view.txt(1,'li','class',this,function(){ return  resource._cid }));___v1ew.push("\"",can.view.pending(),">");___v1ew.push("\n    <input class=\"resourceEnabled\" type=\"checkbox\" ");___v1ew.push(can.view.txt(0,'input',1,this,function(){var ___v1ew = []; if(resource.attr('enabled')) { ___v1ew.push(" checked=\"checked\""); } ;return ___v1ew.join('')}));
-___v1ew.push(" ",can.view.pending(),"/>");___v1ew.push("\n    <div class=\"wrapper-resourceURL span5 control-group\">\n        <span class=\"icon\"></span>\n        <input class=\"resourceURL span5\" type=\"text\" placeholder=\"Resource URL\" value=\"");___v1ew.push(can.view.txt(1,'input','value',this,function(){ return  resource.attr('resourceURL') }));___v1ew.push("\" data-status=\"");___v1ew.push(can.view.txt(1,'input','data-status',this,function(){ return  resource.attr('status') }));___v1ew.push("\" data-resourcetype=\"resourceURL\" ",can.view.pending(),"/>");___v1ew.push("\n    </div>\n    \n    <span class=\"icon-chevron-right\"></span>\n    <div class=\"wrapper-resourceRedirectURL span5 control-group\">\n        <span class=\"icon\"></span>\n        <input class=\"resourceRedirectURL span5\" type=\"text\" placeholder=\"Resource Redirect URL\" value=\"");___v1ew.push(can.view.txt(1,'input','value',this,function(){ return  resource.attr('resourceRedirectURL') }));___v1ew.push("\" data-status=\"");___v1ew.push(can.view.txt(1,'input','data-status',this,function(){ return  resource.attr('status') }));___v1ew.push("\" data-resourcetype=\"resourceRedirectURL\" ",can.view.pending(),"/>");___v1ew.push("\n    </div>\n    \n    <a class=\"btn btn-delete\"><i class=\"icon-minus-sign\"></i></a>\n  </li>\n"); }); ;return ___v1ew.join('')}));
+___v1ew.push(" ",can.view.pending(),"/>");___v1ew.push("\n    <div class=\"wrapper-resourceURL span5 control-group\">\n        <span class=\"icon\"></span>\n        <input class=\"resourceURL span5\" type=\"text\" placeholder=\"Resource URL (e.g css/style.css)\" value=\"");___v1ew.push(can.view.txt(1,'input','value',this,function(){ return  resource.attr('resourceURL') }));___v1ew.push("\" data-status=\"");___v1ew.push(can.view.txt(1,'input','data-status',this,function(){ return  resource.attr('status') }));___v1ew.push("\" data-resourcetype=\"resourceURL\" ",can.view.pending(),"/>");___v1ew.push("\n    </div>\n    \n    <span class=\"icon-chevron-right\"></span>\n    <div class=\"wrapper-resourceRedirectURL span5 control-group\">\n        <span class=\"icon\"></span>\n        <input class=\"resourceRedirectURL span5\" type=\"text\" placeholder=\"Redirect URL (e.g http://localhost/css/style.css)\" value=\"");___v1ew.push(can.view.txt(1,'input','value',this,function(){ return  resource.attr('resourceRedirectURL') }));___v1ew.push("\" data-status=\"");___v1ew.push(can.view.txt(1,'input','data-status',this,function(){ return  resource.attr('status') }));___v1ew.push("\" data-resourcetype=\"resourceRedirectURL\" ",can.view.pending(),"/>");___v1ew.push("\n    </div>\n    \n    <a class=\"btn btn-delete\"><i class=\"icon-minus-sign\"></i></a>\n  </li>\n"); }); ;return ___v1ew.join('')}));
 ; return ___v1ew.join('')}} }));
 })(this);

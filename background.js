@@ -199,7 +199,6 @@
       chrome.webRequest.onBeforeRequest.addListener(listeners[listeners.length] = function(details) {
         //Make sure that the devtools for this tab is active,
         if(!activeTabs[details.tabId]) return;
-        
         for(var i=0;i<rule.resources.length;i++) {
           if(rule.resources[i].enabled && details.url.indexOf(rule.resources[i].resourceURL) != -1) {
             if(details.tabId) {
@@ -219,6 +218,12 @@
           urls: [
             //Matching only specific type of files,
             rule.domainURL+"*.js*",
+            rule.domainURL+"*.jpg*",
+            rule.domainURL+"*.jpeg*",
+            rule.domainURL+"*.png*",
+            rule.domainURL+"*.gif*",
+            rule.domainURL+"*.ico*",
+            rule.domainURL+"*.svg*",
             rule.domainURL+"*.css*",
             rule.domainURL+"*.less*"
           ]

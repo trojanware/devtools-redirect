@@ -6,6 +6,14 @@ body {
 .clear {display:block; clear:both;}
 
 /* Content */
+#form-rules #wrp-saving {
+  display:none;
+  background: url(../images/ico-loading.gif) no-repeat left center;
+  padding-left: 25px;
+  font-size: 10pt;
+  color: #666;
+}
+
 #form-rules fieldset {
   padding: 0 0 20px 0;
 }
