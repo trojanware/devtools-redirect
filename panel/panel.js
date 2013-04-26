@@ -25,7 +25,6 @@
     enabled: true,
     domainURL: null,
     resources: null
-    
   });
   
   DevtoolsRedirect.Resource = can.Model({
@@ -37,7 +36,7 @@
     resourceURL: null,
     resourceRedirectURL: null
   });
-  
+    
   DevtoolsRedirect.Resource.List = can.Model.List({
    
   });
@@ -124,8 +123,12 @@
       var _this = this;
       var url = el.val();
 
-      if(url == "") return;
-      //Also remove the current status icon!
+      //Make sure the url isn't empty,
+      if(url === "") return;
+
+      //Make sure it's not a path url,
+      var lastChar = url[url.length - 1];
+      if(lastChar == "*") return;
 
       var model = el.parents('li').data('resource');
       var id = model._cid+"-"+el.data('resourcetype');
@@ -156,7 +159,7 @@
       this.addRulesSet();
       event.preventDefault();
     },
-    
+
     saveRules: function() {
       var _this = this;
       
