@@ -64,5 +64,24 @@ body {
   opacity:0.6;
 }
 
+#form-rules .form-actions #wrp-msg {
+	display:inline-block;
+	font-size: 11pt;
+	vertical-align:middle;
+	padding-left:8px;
+}
+
+#form-rules .form-actions .msg-success {
+	color:green;
+}
+
+#form-rules .form-actions .msg-error {
+	color:red;
+}
+
+#form-rules .form-actions .msg-action {
+	color:grey;
+}
+
 
   

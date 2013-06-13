@@ -1,5 +1,5 @@
 
-(function() {
+(function () {
   
   var redirectRoot = "http://localhost/trsrc-MAINLINE/site/";
   var listeners = [];
@@ -228,6 +228,9 @@
           }
           else if(details.url.indexOf(rule.resources[i].resourceURL) != -1) {
             redirectUrl = rule.resources[i].resourceRedirectURL;
+          }
+
+          if(redirectUrl) {
             if(details.tabId) {
               badgeCounts[details.tabId] = badgeCounts[details.tabId] + 1;
               if(typeof resourcesRedirected[details.tabId] == 'undefined') {
@@ -235,23 +238,15 @@
               }
               resourcesRedirected[details.tabId].push(rule.resources[i]);
             }
-          }
 
-          if(redirectUrl) return {redirectUrl: redirectUrl};
+            return {redirectUrl: redirectUrl}; 
+          }
         }
       },
       {
           urls: [
             //Matching only specific type of files,
-            rule.domainURL+"*.js*",
-            rule.domainURL+"*.jpg*",
-            rule.domainURL+"*.jpeg*",
-            rule.domainURL+"*.png*",
-            rule.domainURL+"*.gif*",
-            rule.domainURL+"*.ico*",
-            rule.domainURL+"*.svg*",
-            rule.domainURL+"*.css*",
-            rule.domainURL+"*.less*"
+            rule.domainURL+"*"
           ]
       },
       ["blocking"]

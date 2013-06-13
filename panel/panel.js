@@ -1,5 +1,5 @@
 
-(function(DevtoolsRedirect) {
+(function (DevtoolsRedirect, window) {
 
   /*
     Extension Communication,
@@ -45,22 +45,32 @@
     Panel constructor,
   */
   DevtoolsRedirect.Panel = can.Control({
+    MSG_ERROR: "error",
+    MSG_ACTION: "action",
+    MSG_SUCCESS: "success",
+    
+    MSG_NO_SYNC_STORAGE: "Couldn't save the rules, you must enable your chrome's sync storage.",
+    MSG_RULES_SAVED: "Rules saved.",
+    MSG_SAVING: "Saving rules...",
     
     defaults: {
       rules: null
     },
     
     resourceKeyupTimeouts: null,
-    validatingUrls: null
+    validatingUrls: null,
+    msgFadeTimeout: null,
+    saveTimeout: null
   },
   {
     //Functions,
     init: function() {
       var _this = this;
+      
       //DOM els,
       this.formRules = $('#form-rules');
       this.formActions = this.formRules.find('.form-actions');
-      this.wrpSaving = this.element.find('#wrp-saving');
+      this.wrpMsg = this.element.find('#wrp-msg');
       
       var optionsDef = null;
       if(!this.options.rules) {
@@ -147,39 +157,86 @@
 
     "input.domainURL, input.resourceURL, input.resourceRedirectURL blur": function(el, event) {
       // Save the rules every time a text field is blured(),
-      this.saveRules();
+      //this.saveRulesTimeout();
     },
 
-    "input.siteEnabled change": function(el, event) {
+    "input.siteEnabled, input.resourceEnabled change": function(el, event) {
       // Save the rules every time a domain or a redirect enabling change,
-      this.saveRules();
+      //this.saveRulesTimeout();
     },
 
     ".btn-rules-add click": function(el, event) {
       this.addRulesSet();
       event.preventDefault();
     },
-
+		
+    "#btn-save click": function(el, event) {
+      this.saveRulesTimeout();
+      event.preventDefault();
+    },
+    
     saveRules: function() {
       var _this = this;
       
       //Get rules,
       var rules = this.retrieveRules();
       
-      if(!chrome.storage) { return; }
-
-      //Show loading state,
-      //Keep it for now, but it's saving so fast that this is useless...
-      //this.wrpSaving.css('display', 'block');
-
+			if(!chrome.storage || chrome.storage && !chrome.storage.sync) {
+				this.showMsg(DevtoolsRedirect.Panel.MSG_ERROR, DevtoolsRedirect.Panel.MSG_NO_SYNC_STORAGE);
+				return;
+      }
+			
       chrome.storage.sync.set({'rules': rules}, function() {
-        //_this.wrpSaving.css('display', 'none');
+        if(chrome.runtime.lastError)
+    		{
+        	//Error,
+        	_this.showMsg(DevtoolsRedirect.Panel.MSG_ERROR, DevtoolsRedirect.Panel.MSG_NO_SYNC_STORAGE);
+    		}
+        else {
+        	//Success,
+        	_this.showMsg(DevtoolsRedirect.Panel.MSG_SUCCESS, DevtoolsRedirect.Panel.MSG_RULES_SAVED, 2000);
         
-        //Once options are set, update options,
-        if(typeof window.respond != 'undefined') window.respond({action: 'refreshOptions'});
+        	//Once options are set, update options,
+        	if(typeof window.respond != 'undefined') window.respond({action: 'refreshOptions'});
+        }
+        
       });
     },
-
+    
+    saveRulesTimeout: function() {
+    	var _this = this;
+    	
+    	if(this.saveTimeout) clearTimeout(this.saveTimeout);
+    	
+    	this.showMsg(DevtoolsRedirect.Panel.MSG_ACTION, DevtoolsRedirect.Panel.MSG_SAVING);
+    	
+    	this.saveTimeout = setTimeout(function() {
+    		_this.saveRules();
+    	}, 500);
+    	
+    },
+		
+    showMsg: function(type, msg, fadeTime) {
+    	var _this = this;
+    	
+    	if(this.msgFadeTimeout) clearTimeout(this.msgFadeTimeout);
+    	
+    	//Hide message box,
+    	if(!type) {
+    		this.wrpMsg.fadeOut();
+    	}
+    	else if(type && msg) {
+    		//Pop message,
+    		this.wrpMsg.removeClass();
+    		this.wrpMsg.addClass('msg-'+type).html(msg).fadeIn();
+    		
+    		if(fadeTime) {
+    			this.msgFadeTimeout = setTimeout(function() { _this.showMsg(false); }, fadeTime);
+    		}
+    	}
+    	
+    },
+    
     setInputIcon: function(input, status, url, content) {
       var icon = input.parent().find('.icon');
 
@@ -243,7 +300,7 @@
       list.append(resourceHTML);
 
       //Save current state,
-      this.saveRules();
+      //this.saveRulesTimeout();
     },
     
     addRulesSet: function() {
@@ -252,7 +309,7 @@
       this.formActions.before(ruleHTML);
 
       //Save current state,
-      this.saveRules();
+      //this.saveRulesTimeout();
     },
     
     addResourceFromTools: function(tab, resource) {
@@ -275,7 +332,7 @@
       rowEl.remove();
 
       //Save current state,
-      this.saveRules();
+      //this.saveRulesTimeout();
     },
     
     retrieveRules: function() {
@@ -345,7 +402,7 @@
   
   window.Panel = new DevtoolsRedirect.Panel('#form-rules', {});
 
-})(DevtoolsRedirect);
+})(DevtoolsRedirect, window);
 
 (function(window) {
   can.view.preload('views_rules_ejs', can.EJS(function(_CONTEXT,_VIEW) { with(_VIEW) { with (_CONTEXT) {var ___v1ew = [];___v1ew.push(can.view.txt(0,'',0,this,function(){var ___v1ew = []; $.each( rules, function( i, rule ) { ___v1ew.push("\n  <fieldset>\n    <legend>\n      <input class=\"siteEnabled\" type=\"checkbox\" placeholder=\"Enabled\" ");___v1ew.push(can.view.txt(0,'input',1,this,function(){var ___v1ew = []; if(rule.attr('enabled')) { ___v1ew.push(" checked=\"checked\""); } ;return ___v1ew.join('')}));
