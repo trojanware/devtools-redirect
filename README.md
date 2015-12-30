@@ -7,7 +7,7 @@ Installation
 ---------------------
 You can either install it from the Chrome Webstore https://chrome.google.com/webstore/detail/devtools-redirect/jmhdebkkippcccflcoddckhjjfgnfhnp
 **or**
-fork it from Github http://github.com/kbouchard/devtools-redirect and load it unpacked.
+Clone this repo and follow https://developer.chrome.com/extensions/getstarted#unpacked
 
 Demo
 ---------------------
