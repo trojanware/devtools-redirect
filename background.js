@@ -61,16 +61,19 @@
   
   //Communication,
   var ports = {};
+  var nextId = 1;
   chrome.extension.onConnect.addListener(function(port) {
       if(port.name != 'devtools' && port.name != 'popup' && port.name != 'panel') return;
-      var tabId = port.sender && port.sender.tab.id ? port.sender.tab.id : null;
-      ports[port.portId_] = {port: port, portId: port.portId_, tabId: tabId, name: port.name};
+      console.log(port);
+      //var tabId = port.sender && port.sender.tab.id ? port.sender.tab.id : null;
+      //ports[port.portId_] = {port: port, portId: port.portId_, tabId: tabId, name: port.name};
       
       // Remove port when destroyed (eg when devtools instance is closed)
       port.onDisconnect.addListener(function(port) {
-        var portObj = ports[port.portId_];
+          console.log("disconnect");
+        /*var portObj = ports[port.portId_];
         if(portObj && port.name == 'devtools' && portObj.tabId) disableTab(portObj.tabId);
-        delete ports[port.portId_];
+        delete ports[port.portId_];*/
       });
       
       port.onMessage.addListener(function(msg) {
